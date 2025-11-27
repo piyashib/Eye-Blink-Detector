@@ -1,6 +1,9 @@
 import numpy as np
 import scipy.stats as stats
 from scipy.signal import welch, find_peaks
+from sklearn.metrics import confusion_matrix 
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
+from sklearn.metrics import accuracy_score
 
 
 def create_waveform_features(data, sampling_freq):
@@ -21,7 +24,7 @@ def create_waveform_features(data, sampling_freq):
     max_peak_width = find_width_zerocrossing(data, direction = 'peak')
     max_trough_width = find_width_zerocrossing(data, direction = 'trough')
 
-    freqs, psd = welch(data, sampling_freq=sampling_freq, \
+    freqs, psd = welch(data, fs=sampling_freq, \
                        nperseg=np.size(data, axis = 1), axis = 1) #unsuitable low frequencies
     freq_ind_low = np.where(freqs == 10)[0][0]
     freq_ind_high_1 = np.where(freqs == 10)[0][0]
@@ -76,3 +79,21 @@ def find_width_zerocrossing(data, direction = 'peak'):
         all_max_widths[epoch] = width_at_maxpk
 
     return all_max_widths
+
+def map_true_predicted_labels(y_labeled, y_predictions):
+    """Function maps predicted labels to true labels"""
+
+    #test how well the kmeans predictions are
+    ari = adjusted_rand_score(y_labeled, y_predictions)
+    nmi = normalized_mutual_info_score(y_labeled, y_predictions)
+
+    conf_mat = confusion_matrix(y_labeled, y_predictions)
+    acc = accuracy_score(y_labeled, y_predictions)
+
+    true_label_mapping = {}
+    for cluster_idx in range(conf_mat.shape[1]):
+        true_label = np.argmax(conf_mat[:, cluster_idx])
+        true_label_mapping[cluster_idx] = true_label
+
+    return [true_label_mapping, acc, ari, nmi, conf_mat]
+
